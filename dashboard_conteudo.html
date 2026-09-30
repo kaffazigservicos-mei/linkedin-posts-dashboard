@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análise de Conteúdo - Gestão de Projetos</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+body { background: #f4f6f9; color: #2c3e50; padding: 20px; }
+.container { max-width: 1300px; margin: 0 auto; }
+.header { background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%); color: #fff; padding: 40px; border-radius: 12px; margin-bottom: 24px; text-align: center; }
+.header h1 { font-size: 2.2em; margin-bottom: 10px; }
+.header .periodo { font-size: 1.2em; opacity: 0.9; margin-bottom: 15px; }
+.header .nota { font-size: 0.85em; opacity: 0.75; font-style: italic; max-width: 800px; margin: 0 auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+@media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+.card { background: #fff; padding: 28px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 24px; }
+.card h2 { color: #2c3e50; margin-bottom: 20px; font-size: 1.4em; border-bottom: 3px solid #4ca1af; padding-bottom: 10px; display: inline-block; }
+.cc { position: relative; height: 400px; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th { background: #2c3e50; color: #fff; padding: 12px; text-align: left; font-weight: 600; }
+td { padding: 12px; border-bottom: 1px solid #ecf0f1; vertical-align: middle; }
+tr:hover { background: #f8f9fa; }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 12px; color: #fff; font-size: 0.8em; font-weight: 600; }
+.link-post { color: #0077B5; text-decoration: none; font-weight: 600; }
+.link-post:hover { text-decoration: underline; }
+.insights { background: #eef2f5; padding: 20px; border-radius: 8px; margin-top: 15px; }
+.insights h3 { color: #4ca1af; margin-bottom: 10px; }
+.insights ul { padding-left: 20px; }
+.insights li { margin-bottom: 8px; line-height: 1.5; }
+.framework-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+.framework-table th { background: #4ca1af; }
+.framework-table td { padding: 10px; border: 1px solid #ddd; font-size: 0.9em; }
+.legenda-container { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-start; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+.legenda-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #fff; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: 0.9em; }
+.legenda-cor { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.footer { text-align: center; padding: 20px; color: #7f8c8d; font-size: 0.9em; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+<h1>📊 Análise de Conteúdo: Gestão de Projetos</h1>
+<div class="periodo">📅 Período Analisado: 10/06/2022 a 29/09/2026</div>
+<div class="nota">⚠️ Nota Metodológica: O ano das publicações foi inferido algoritmicamente com base na ordem cronológica decrescente dos posts extraídos do Buffer, uma vez que a plataforma não exibe o ano na listagem de posts enviados. Os anos cobertos são: 2022, 2023, 2024, 2025, 2026.</div>
+</div>
+
+<div class="grid-2">
+<div class="card">
+<h2>🎯 Distribuição Temática (Pilares de Conteúdo)</h2>
+<p style="margin-bottom: 15px; color: #555; font-size: 0.9em;"><strong>Pilar de Conteúdo</strong> = principais tópicos/temas abordados nos posts, agrupados por afinidade temática.</p>
+<div class="cc"><canvas id="chartPilares"></canvas></div>
+<div class="legenda-container" id="legendaPilares"></div>
+</div>
+
+<div class="card">
+<h2> Alinhamento com Frameworks Globais (PMBOK / IPMA)</h2>
+<p style="margin-bottom: 15px; color: #555; font-size: 0.9em;">
+<strong>Pilar de Conteúdo</strong>: principais tópicos abordados nos posts.<br>
+<strong>Foco Principal</strong>: objetivo/ênfase de cada pilar — o que ele prioriza na prática da gestão.
+</p>
+<table class="framework-table">
+<thead>
+<tr><th>Pilar de Conteúdo</th><th>PMBOK (PMI)</th><th>IPMA (ICB4)</th><th>Foco Principal</th></tr>
+</thead>
+<tbody>
+<tr>
+    <td><strong>Riscos & Governança</strong></td>
+    <td>Gestão de Riscos, Custos e Integração</td>
+    <td>Domínio de Contexto (Governança) e Prática (Riscos)</td>
+    <td>Controle, Previsibilidade e Proteção do Valor</td>
+</tr>
+<tr>
+    <td><strong>Liderança & Pessoas</strong></td>
+    <td>Gestão de Recursos e Partes Interessadas (Stakeholders)</td>
+    <td>Domínio de Pessoas (Liderança, Negociação, Conflitos)</td>
+    <td>Soft Skills, Segurança Psicológica e Engajamento</td>
+</tr>
+<tr>
+    <td><strong>Metodologias & Inovação</strong></td>
+    <td>Abordagem de Desenvolvimento e Ciclo de Vida (Tailoring)</td>
+    <td>Domínio de Prática (Métodos e Ferramentas)</td>
+    <td>Adaptação, IA e Melhoria Contínua</td>
+</tr>
+<tr>
+    <td><strong>Estratégia & Negócios</strong></td>
+    <td>Entrega de Valor, Benefícios e Escopo</td>
+    <td>Domínio de Negócios (Estratégia e Benefícios)</td>
+    <td>Alinhamento Estratégico e ROI</td>
+</tr>
+<tr>
+    <td><strong>Transversal</strong></td>
+    <td>Transversal a todas as áreas de conhecimento</td>
+    <td>Transversal a todos os domínios</td>
+    <td>Reflexão, Ética e Pensamento Sistêmico</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="card">
+<h2>🏆 Top 10 Posts Mais Representativos (Por Relevância Temática)</h2>
+<p style="margin-bottom: 15px; color: #555;">Seleção baseada no score de aderência aos pilares temáticos. Clique no link para consumir o conteúdo original.</p>
+<table>
+<thead>
+<tr><th>#</th><th>Título do Post</th><th>Pilar</th><th>Data</th><th>Acesso</th></tr>
+</thead>
+<tbody>
+
+        <tr>
+            <td><strong>1</strong></td>
+            <td style="max-width: 400px;">A Matemática das Reservas:</td>
+            <td><span class="badge" style="background:#1E88E5">Riscos & Governança</span></td>
+            <td>2026-09-10</td>
+            <td><a href="https://www.linkedin.com/feed/update/urn:li:share:7503769653500997632" target="_blank" class="link-post">🔗 Ler no LinkedIn</a></td>
+        </tr>
+        <tr>
+            <td><strong>2</strong></td>
+            <td style="max-width: 400px;">Gestão de Riscos: Contingência e rigidez orçamentária</td>
+            <td><span class="badge" style="background:#1E88E5">Riscos & Governança</span></td>
+            <td>2026-09-03</td>
+            <td><a href="https://www.linkedin.com/feed/update/urn:li:share:7501225176496439296" target="_blank" class="link-post">🔗 Ler no LinkedIn</a></td>
+        </tr>
+        <tr>
+            <td><strong>3</strong></td>
+            <td style="max-width: 400px;">O Capital é Covarde: Gestão de Custos e Riscos</td>
+            <td><span class="badge" style="background:#1E88E5">Riscos & Governança</span></td>
+            <td>2025-12-04</td>
+            <td><a href="https://www.linkedin.com/feed/hashtag/?keywords=CustosEmProjetos" target="_blank" class="link-post">🔗 Ler no LinkedIn</a></td>
+        </tr>
+        <tr>
+            <td><strong>4</strong></td>
+            <td style="max-width: 400px;">Comunicação não violenta na</td>
+            <td><span class="badge" style="background:#43A047">Liderança & Pessoas</span></td>
+            <td>2026-06-25</td>
+            <td><a href="https://www.linkedin.com/feed/update/urn:li:ugcPost:7475869287010770945" target="_blank" class="link-post">🔗 Ler no LinkedIn</a></td>
+        </tr>
+        <tr>
+            <td><strong>5</strong></td>
+            <td style="max-width: 400px;">Riscos de campo e o registro na EAP</td>
+            <td><span class="badge" style="background:#1E88E5">Riscos & Governança</span></td>
+            <td>2026-09-08</td>
+            <td><a href="https://www.linkedin.com/feed/update/urn:li:share:7503044811726422017" target="_blank" class="link-post">🔗 Ler no LinkedIn</a></td>
+        </tr>
+        <tr>
+            <td><strong>6</strong></td>
+            <td style="max-width: 400px;">O Escritório de Projetos no Brasil:</td>
+            <td><span class="badge" style="background:#FB8C00">Estratégia & Negócios</span></td>
+            <td>2026-07-02</td>
+            <td><a href="https://www.linkedin.com/feed/update/urn:li:ugcPost:7478405994717450240" target="_blank" class="link-post">🔗 Ler no LinkedIn</a></td>
+        </tr>
+        <tr>
+            <td><strong>7</strong></td>
+            <td style="max-width: 400px;">A Aplicação de Framework de Projetos nas</td>
+            <td><span class="badge" style="background:#1E88E5">Riscos & Governança</span></td>
+            <td>2026-09-24</td>
+            <td><a href="https://www.linkedin.com/feed/update/urn:li:ugcPost:7508843257293049857" target="_blank" class="link-post">🔗 Ler no LinkedIn</a></td>
+        </tr>
+        <tr>
+            <td><strong>8</strong></td>
+            <td style="max-width: 400px;">O Impacto da Primeira Impressão na gestão</td>
+            <td><span class="badge" style="background:#43A047">Liderança & Pessoas</span></td>
+            <td>2026-05-14</td>
+            <td><a href="https://www.linkedin.com/feed/update/urn:li:ugcPost:7460804226106056704" target="_blank" class="link-post">🔗 Ler no LinkedIn</a></td>
+        </tr>
+        <tr>
+            <td><strong>9</strong></td>
+            <td style="max-width: 400px;">Estratégia: Alinhando Custo, Escopo e Progresso</td>
+            <td><span class="badge" style="background:#1E88E5">Riscos & Governança</span></td>
+            <td>2026-05-12</td>
+            <td><a href="https://www.linkedin.com/feed/update/urn:li:ugcPost:7459920622413078530" target="_blank" class="link-post">🔗 Ler no LinkedIn</a></td>
+        </tr>
+        <tr>
+            <td><strong>10</strong></td>
+            <td style="max-width: 400px;">Como identificar o esgotamento técnico além dos dados</td>
+            <td><span class="badge" style="background:#43A047">Liderança & Pessoas</span></td>
+            <td>2026-08-06</td>
+            <td><a href="https://www.linkedin.com/feed/update/urn:li:ugcPost:7491089565986938880" target="_blank" class="link-post">🔗 Ler no LinkedIn</a></td>
+        </tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h2>💡 Insights Estratégicos para a Comunidade de GP</h2>
+<div class="insights">
+<h3>1. A Transição do "Triângulo de Ferro" para a "Entrega de Valor"</h3>
+<p>O conteúdo demonstra uma clara evolução da gestão tradicional (focada estritamente em Escopo, Prazo e Custo) para uma visão orientada a <strong>Benefícios e Resultados de Negócio</strong>. Isso reflete diretamente as mudanças do PMBOK 7ª Edição e o foco do IPMA em "Business and Strategy".</p>
+</div>
+<div class="insights" style="margin-top: 15px;">
+<h3>2. A Ascensão das "Power Skills" (Soft Skills)</h3>
+<p>A alta representatividade do pilar "Liderança & Pessoas" confirma a tendência global do setor: a gestão de projetos deixou de ser apenas técnica para ser fundamentalmente <strong>humana e política</strong>. Temas como segurança psicológica, inteligência emocional e negociação são tão críticos quanto o cronograma.</p>
+</div>
+<div class="insights" style="margin-top: 15px;">
+<h3>3. Gestão de Riscos Proativa vs. Reativa</h3>
+<p>O foco em "Reservas de Contingência", "Pre-mortem" e "Gatilhos de Parada" indica uma maturidade em gestão de riscos que vai além do registro em planilhas, buscando a <strong>proteção financeira e a governança</strong> ativa da instituição.</p>
+</div>
+<div class="insights" style="margin-top: 15px;">
+<h3>4. O Futuro: IA, Tailoring e Complexidade</h3>
+<p>A menção a frameworks adaptativos, IA e o modelo Cynefin mostra que a gestão de projetos tem como desafio obter uma curadoria de métodos (Tailoring), para ser capaz de navegar na complexidade. É ir além de seguir processos rígidos.</p>
+</div>
+</div>
+
+<div class="footer">
+<p>📊 Dashboard de Análise de Conteúdo gerado automaticamente.</p>
+<p>Baseado em 594 publicações analisadas.</p>
+</div>
+
+</div>
+
+<script>
+// Registrar o plugin de datalabels
+Chart.register(ChartDataLabels);
+
+new Chart(document.getElementById('chartPilares'), {
+  type: 'doughnut',
+  data: {
+    labels: ["Riscos & Governan\u00e7a", "Lideran\u00e7a & Pessoas", "Metodologias & Inova\u00e7\u00e3o", "Estrat\u00e9gia & Neg\u00f3cios", "Transversal"],
+    datasets: [{
+      data: [59, 132, 245, 148, 10],
+      backgroundColor: ["#1E88E5", "#43A047", "#8E24AA", "#FB8C00", "#757575"],
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        color: '#fff',
+        font: { weight: 'bold', size: 14 },
+        formatter: function(value, context) {
+          return ["9.9%", "22.2%", "41.2%", "24.9%", "1.7%"][context.dataIndex];
+        }
+      }
+    }
+  }
+});
+
+// Legenda personalizada com alinhamento à esquerda
+const legendaContainer = document.getElementById('legendaPilares');
+const labels = ["Riscos & Governan\u00e7a", "Lideran\u00e7a & Pessoas", "Metodologias & Inova\u00e7\u00e3o", "Estrat\u00e9gia & Neg\u00f3cios", "Transversal"];
+const colors = ["#1E88E5", "#43A047", "#8E24AA", "#FB8C00", "#757575"];
+const counts = [59, 132, 245, 148, 10];
+const total = counts.reduce((a, b) => a + b, 0);
+
+labels.forEach((label, i) => {
+  const pct = ((counts[i] / total) * 100).toFixed(1);
+  const item = document.createElement('div');
+  item.className = 'legenda-item';
+  item.innerHTML = '<span class="legenda-cor" style="background:' + colors[i] + '"></span>' + label + ' (' + pct + '%)';
+  legendaContainer.appendChild(item);
+});
+</script>
+</body>
+</html>
