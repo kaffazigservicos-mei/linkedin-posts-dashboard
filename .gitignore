@@ -1,0 +1,12 @@
+# Arquivos de dados CSV
+*.csv
+
+# Backups
+*_backup_*
+
+# Logs
+*.log
+
+# Python cache
+__pycache__/
+*.pyc

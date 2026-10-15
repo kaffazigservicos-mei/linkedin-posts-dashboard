@@ -1,0 +1,311 @@
+# Manual Técnico: Automação de Análise de Conteúdo LinkedIn via Buffer e GitHub Pages
+
+## 1. Introdução e Objetivo
+Este documento descreve a jornada técnica completa para criar um pipeline automatizado que extrai posts publicados no LinkedIn via Buffer, classifica o conteúdo tematicamente e publica um dashboard interativo na web. O objetivo é registrar os procedimentos, códigos e soluções de problemas para que outros profissionais possam replicar este sistema com ciência do esforço necessário. A ferramenta transforma dados brutos de redes sociais em inteligência estratégica acessível publicamente.
+
+## 2. Arquitetura do Sistema
+O projeto opera em três camadas distintas que se comunicam sequencialmente:
+
+*   **Camada de Extração:** Script Python utilizando Selenium para simular navegação humana no Buffer, realizar scroll infinito, expandir textos truncados e salvar dados em CSV.
+*   **Camada de Processamento:** Orquestrador local que gerencia backups, deduplicação de links, classificação por pilares temáticos e geração de arquivos HTML estáticos.
+*   **Camada de Publicação:** Repositório GitHub integrado ao GitHub Pages para hospedar o dashboard como site público sem custos de servidor.
+
+## 3. Pré-requisitos Técnicos
+Antes de iniciar, certifique-se de possuir os seguintes itens configurados:
+
+*   Python 3.10 ou superior instalado e adicionado ao PATH do sistema.
+*   Google Chrome atualizado (versão compatível com o ChromeDriver).
+*   Conta ativa no Buffer conectada ao perfil profissional do LinkedIn.
+*   Conta no GitHub para hospedagem pública.
+*   Editor de código confiável para manipulação segura dos scripts.
+
+### Nota sobre Editores de Código
+Para este projeto, recomenda-se o uso do **Notepad++** em vez de editores mais complexos como VS Code. O Notepad++ é leve, gratuito e permite controle total sobre a codificação dos arquivos.
+
+**Ressalvas importantes ao usar Notepad++:**
+*   Sempre configure a codificação para **UTF-8** (menu Codificação > Converter para UTF-8) antes de salvar qualquer arquivo `.py`. Arquivos salvos em ANSI ou Windows-1252 causarão erros de `UnicodeEncodeError` durante a execução.
+*   Evite o Bloco de Notas padrão do Windows. Ele não oferece controle de codificação e pode inserir caracteres invisíveis que quebram a sintaxe Python.
+*   Verifique sempre se há espaços extras no final das linhas ou dentro de strings, pois o Notepad++ não possui linting automático como IDEs mais avançadas.
+
+## 4. Fase 1: Desenvolvimento da Extração de Dados
+A extração foi a etapa mais complexa devido às proteções anti-bot e à estrutura dinâmica do Buffer.
+
+### Desafios Superados
+*   **Sessão Expirada:** O Buffer exige login frequente. Criamos um fluxo híbrido onde o script abre o navegador, aguarda o login manual do usuário e detecta automaticamente a URL de sucesso antes de prosseguir.
+*   **Textos Truncados:** Posts longos aparecem cortados com botão "See more". Implementamos um loop iterativo que clica nesses botões até que nenhum novo seja encontrado.
+*   **Codificação de Caracteres:** Emojis e caracteres especiais causavam erros `UnicodeEncodeError` no Windows. A solução foi forçar `PYTHONIOENCODING=utf-8` nas variáveis de ambiente do subprocesso.
+*   **Inferência de Ano:** O Buffer não exibe o ano na listagem. Desenvolvemos um algoritmo que infere o ano baseando-se na ordem cronológica decrescente dos posts, decrementando o ano sempre que o mês aumenta na sequência.
+
+### Código Base: buffer_export1.py
+Salve este arquivo na pasta raiz do projeto. Ele é responsável por toda a interação com o navegador.
+
+```python
+# buffer_export1.py — Extração Automatizada via Selenium
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+import csv
+import os
+import re
+from datetime import datetime
+
+# Configurações
+BASE_FOLDER = r"C:\Users\dilma\Documents\Linkedinposts"
+CSV_PATH = os.path.join(BASE_FOLDER, "posts_buffer_texto_data1.csv")
+FORCAR_VISIVEL = True
+TIMEOUT = 120
+TARGET_COUNT = 600
+
+os.makedirs(BASE_FOLDER, exist_ok=True)
+
+MESES = {
+    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+}
+
+def criar_driver(visivel):
+    options = Options()
+    if not visivel:
+        options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--window-size=1280,2000")
+    driver = webdriver.Chrome(options=options)
+    driver.set_page_load_timeout(TIMEOUT)
+    return driver
+
+def carregar_sessao():
+    driver = criar_driver(FORCAR_VISIVEL)
+    driver.get("https://buffer.com/login")
+    print("[INFO] Aguardando login manual no navegador...")
+    
+    # Detecta login pela mudança de URL
+    try:
+        WebDriverWait(driver, 300).until(lambda d: '/app/' in d.current_url)
+        print("[OK] Login detectado.")
+    except Exception:
+        print("[ERRO] Tempo esgotado para login.")
+        driver.quit()
+        exit(1)
+
+    # Navega automaticamente para posts enviados
+    driver.get("https://buffer.com/app/posts/sent")
+    time.sleep(8)
+    return driver
+
+def rolar_e_extrair(driver):
+    last_count = 0
+    repeats = 0
+    
+    while True:
+        posts = driver.find_elements(By.XPATH, "//article")
+        if posts:
+            driver.execute_script("arguments[0].scrollIntoView(true);", posts[-1])
+        time.sleep(2)
+        
+        new_count = len(posts)
+        print(f"[SCROLL] {new_count} posts carregados")
+        
+        if new_count >= TARGET_COUNT or (new_count == last_count and repeats > 10):
+            break
+            
+        if new_count == last_count:
+            repeats += 1
+        else:
+            repeats = 0
+        last_count = new_count
+
+    # Expansão de textos
+    for _ in range(5):
+        botoes = driver.find_elements(By.XPATH, 
+            "//button[contains(translate(text(), 'SEEMORE', 'seemore'), 'see more')]")
+        if not botoes: break
+        for b in botoes:
+            try: driver.execute_script("arguments[0].click();", b)
+            except: pass
+        time.sleep(3)
+
+    # Extração final
+    dados = driver.execute_script("""
+        return Array.from(document.querySelectorAll('article')).map(p => ({
+            texto: p.innerText.trim(),
+            aria: p.getAttribute('aria-label') || '',
+            link: (p.querySelector('a[href*="linkedin.com"]') || {}).href || ''
+        }));
+    """)
+    return dados
+
+def inferir_anos(dados):
+    ano = datetime.now().year
+    mes_ant = None
+    datas = []
+    for item in dados:
+        match = re.search(r'on\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d+)', item['aria'], re.I)
+        if match:
+            mes = MESES.get(match.group(1).lower()[:3])
+            dia = int(match.group(2))
+            if mes_ant and mes > mes_ant: ano -= 1
+            mes_ant = mes
+            datas.append(f"{ano}-{mes:02d}-{dia:02d}")
+        else:
+            datas.append(f"{ano}-01-01")
+    return datas
+
+if __name__ == "__main__":
+    driver = carregar_sessao()
+    dados = rolar_e_extrair(driver)
+    datas = inferir_anos(dados)
+    
+    with open(CSV_PATH, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f, delimiter=";")
+        w.writerow(["Data", "Texto", "Link"])
+        for i, d in enumerate(dados):
+            w.writerow([datas[i], d['texto'], d['link']])
+            
+    print(f"[OK] {len(dados)} posts salvos em {CSV_PATH}")
+    driver.quit()
+```
+
+## 5. Fase 2: O Pipeline de Automação Local
+Para evitar execução manual de múltiplos scripts, criamos um orquestrador que gerencia todo o ciclo de vida dos dados.
+
+### Funcionalidades Críticas
+*   **Backup Automático:** Cria cópias de segurança com timestamp antes de qualquer modificação.
+*   **Deduplicação Inteligente:** Compara links do LinkedIn para evitar duplicatas no histórico acumulado.
+*   **Classificação Temática:** Categoriza posts em pilares estratégicos usando scoring de palavras-chave.
+*   **Geração de Dashboard:** Produz arquivos HTML standalone prontos para publicação.
+
+### Código Base: pipeline_atualizacao.py
+Este arquivo deve ser executado semanalmente para manter o dashboard atualizado.
+
+```python
+# pipeline_atualizacao.py — Orquestrador Completo
+import os, sys, csv, shutil, subprocess
+from datetime import datetime
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CSV_BRUTO = os.path.join(BASE_DIR, "posts_buffer_texto_data1.csv")
+CSV_HISTORICO = os.path.join(BASE_DIR, "historico_posts.csv")
+
+def log(msg):
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{ts}] {msg}", flush=True)
+
+def executar_script(nome):
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    resultado = subprocess.run(
+        [sys.executable, os.path.join(BASE_DIR, nome)],
+        capture_output=True, text=True, encoding="utf-8", env=env, timeout=1800
+    )
+    if resultado.returncode != 0:
+        log(f"[ERRO] {nome}: {resultado.stderr[:200]}")
+        return False
+    log(f"[OK] {nome} concluído")
+    return True
+
+def deduplicar():
+    if not os.path.exists(CSV_HISTORICO): return True
+    links_hist = set()
+    with open(CSV_HISTORICO, "r", encoding="utf-8-sig") as f:
+        for r in csv.DictReader(f, delimiter=";"):
+            if r.get("Link"): links_hist.add(r["Link"].strip())
+            
+    novos = []
+    with open(CSV_BRUTO, "r", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f, delimiter=";")
+        fields = reader.fieldnames
+        for r in reader:
+            if r.get("Link", "").strip() not in links_hist:
+                novos.append(r)
+                
+    if novos:
+        with open(CSV_BRUTO, "w", newline="", encoding="utf-8-sig") as f:
+            w = csv.DictWriter(f, fieldnames=fields, delimiter=";")
+            w.writeheader()
+            w.writerows(novos)
+        log(f"[INFO] {len(novos)} posts novos após deduplicação")
+    return len(novos) > 0
+
+if __name__ == "__main__":
+    log("INÍCIO DO PIPELINE")
+    
+    # 1. Backup
+    for arq in [CSV_HISTORICO]:
+        if os.path.exists(arq):
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            shutil.copy2(arq, arq.replace(".csv", f"_backup_{ts}.csv"))
+            
+    # 2. Extração
+    if not executar_script("buffer_export1.py"):
+        log("Pipeline abortado na extração")
+        exit(1)
+        
+    # 3. Deduplicação e Histórico
+    if deduplicar():
+        with open(CSV_BRUTO, "r", encoding="utf-8-sig") as fin:
+            rows = list(csv.DictReader(fin, delimiter=";"))
+        existe = os.path.exists(CSV_HISTORICO)
+        with open(CSV_HISTORICO, "a", newline="", encoding="utf-8-sig") as fout:
+            w = csv.DictWriter(fout, fieldnames=rows[0].keys(), delimiter=";")
+            if not existe: w.writeheader()
+            w.writerows(rows)
+        log(f"[OK] Histórico atualizado com {len(rows)} posts")
+        
+    # 4. Classificação e Dashboard
+    shutil.copy2(CSV_HISTORICO, CSV_BRUTO)
+    executar_script("classificar_pilares.py")
+    executar_script("gerar_dashboard_conteudo.py")
+    
+    log("PIPELINE CONCLUÍDO")
+```
+
+## 6. Fase 3: Agendamento de Tarefa no Windows
+Para garantir que a atualização ocorra periodicamente sem intervenção manual constante, utilize o Agendador de Tarefas do Windows. Como o script de extração utiliza Selenium e requer uma janela de navegador visível para login, a configuração deve respeitar a sessão ativa do usuário.
+
+### Procedimento Passo a Passo
+1.  Pressione `Win + R`, digite `taskschd.msc` e pressione Enter para abrir o Agendador de Tarefas.
+2.  No painel direito, clique em **Criar Tarefa Básica**.
+3.  Nomeie a tarefa (ex: "Atualização Semanal LinkedIn") e clique em Avançar.
+4.  Escolha o disparador **Semanalmente**, defina o dia da semana (recomenda-se segunda-feira) e o horário desejado. Clique em Avançar.
+5.  Selecione **Iniciar um programa** e clique em Avançar.
+6.  Em "Programa/script", insira o caminho completo do interpretador Python ou do arquivo batch. Exemplo:
+    *   Programa: `C:\Users\dilma\AppData\Local\Programs\Python\Python314\python.exe`
+    *   Adicionar argumentos: `"C:\Users\dilma\Documents\Linkedinposts\pipeline_atualizacao.py"`
+    *   Iniciar em: `C:\Users\dilma\Documents\Linkedinposts`
+7.  Conclua o assistente.
+8.  **Configuração Crucial:** Na lista de tarefas, clique com o botão direito na tarefa criada e selecione **Propriedades**. Na aba "Geral", marque obrigatoriamente a opção **"Executar apenas quando o usuário estiver conectado"**. Se esta opção não for marcada, o Selenium não conseguirá abrir o navegador visualmente e a extração falhará.
+
+## 7. Fase 4: Publicação no GitHub Pages
+Transformar o HTML local em um site público requer configuração específica para evitar erros comuns.
+
+### Procedimento Passo a Passo
+1.  Crie um repositório público no GitHub chamado `linkedin-posts-dashboard`.
+2.  Faça upload dos arquivos `.html` gerados pelo pipeline.
+3.  Crie um arquivo vazio chamado `.nojekyll` na raiz do repositório. Isso impede que o GitHub tente processar seu HTML com Jekyll e cause erros 404.
+4.  Renomeie `dashboard_conteudo.html` para `index.html` para que ele seja a página padrão do site.
+5.  Acesse Settings > Pages e configure Source como "Deploy from a branch", selecionando `main` e `/ (root)`.
+6.  Aguarde 2 minutos e acesse `https://seu-usuario.github.io/linkedin-posts-dashboard/`.
+
+### Erros Frequentes e Soluções
+*   **Erro 404 após deploy:** Geralmente causado pela ausência do arquivo `.nojekyll` ou pelo nome do arquivo HTML estar diferente de `index.html`.
+*   **Botão Save desabilitado no Pages:** Selecione explicitamente a branch `main` e a pasta root antes de salvar. O botão só ativa quando ambos os campos estão preenchidos.
+*   **Conflito de Merge no Git:** Se você subiu arquivos manualmente pelo site e depois tentou push local, use `git pull origin main --allow-unrelated-histories` antes de enviar.
+
+## 8. Lições Aprendidas e Recomendações
+Desenvolver esta automação exigiu persistência técnica e adaptação constante. Abaixo estão os aprendizados mais valiosos para quem deseja trilhar caminho similar.
+
+*   **Respeite os Limites das Plataformas:** Sites como Buffer e LinkedIn possuem proteções ativas. Scripts agressivos resultam em bloqueios. Sempre implemente pausas aleatórias entre ações e limite a velocidade de scroll.
+*   **Valide Dados Antes de Processar:** Nunca assuma que a extração foi perfeita. Implemente verificações de integridade que checam formato de datas, existência de textos e validade de URLs antes de classificar ou publicar.
+*   **Documente Cada Erro:** Mantenha um log detalhado de todas as falhas. Padrões de erro revelam mudanças na estrutura do site alvo que exigem atualização do scraper.
+*   **Separe Lógica de Interface:** Mantenha o código de extração separado do código de análise. Isso permite atualizar o scraper quando o site muda sem quebrar a lógica de negócio.
+*   **Teste Localmente Antes de Agendar:** Nunca confie cegamente no agendador de tarefas do Windows. Execute o pipeline manualmente regularmente para garantir que sessões de login e dependências estejam funcionais.
+*   **GitHub Pages é Estático:** Não espere funcionalidades dinâmicas como banco de dados ou formulários. Todo o processamento deve ocorrer localmente antes do upload. O site serve apenas para visualização.
+
+## 9. Considerações Finais
+Esta automação representa centenas de horas de teste, depuração e refinamento. O valor entregue vai além do dashboard final. Está na capacidade de transformar rotina operacional em ativo estratégico reutilizável. Ao replicar este sistema, esteja preparado para adaptar códigos conforme plataformas evoluem. A manutenção contínua é parte intrínseca de qualquer automação baseada em interfaces web de terceiros.
+
+Use este documento como mapa, mas desenvolva sua própria bússola técnica. Cada contexto possui particularidades que exigem soluções customizadas. O esforço é significativo, mas a autonomia gerada sobre seus próprios dados compensa integralmente o investimento inicial.

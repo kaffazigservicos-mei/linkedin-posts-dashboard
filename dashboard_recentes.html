@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análise de Conteúdo: Publicações Recentes - Gestão de Projetos</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+body { background: #f4f6f9; color: #2c3e50; padding: 20px; }
+.container { max-width: 1300px; margin: 0 auto; }
+.header { background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%); color: #fff; padding: 40px; border-radius: 12px; margin-bottom: 24px; text-align: center; }
+.header h1 { font-size: 2.2em; margin-bottom: 10px; }
+.header .periodo { font-size: 1.2em; opacity: 0.9; margin-bottom: 15px; }
+.header .nota { font-size: 0.85em; opacity: 0.9; font-style: italic; max-width: 900px; margin: 0 auto; background: rgba(255,255,255,0.15); padding: 15px; border-radius: 8px; border-left: 4px solid #FFD700; text-align: left; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+@media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+.card { background: #fff; padding: 28px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 24px; }
+.card h2 { color: #2c3e50; margin-bottom: 20px; font-size: 1.4em; border-bottom: 3px solid #4ca1af; padding-bottom: 10px; display: inline-block; }
+.cc { position: relative; height: 400px; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th { background: #2c3e50; color: #fff; padding: 12px; text-align: left; font-weight: 600; }
+td { padding: 12px; border-bottom: 1px solid #ecf0f1; vertical-align: middle; }
+tr:hover { background: #f8f9fa; }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 12px; color: #fff; font-size: 0.8em; font-weight: 600; }
+.link-post { color: #0077B5; text-decoration: none; font-weight: 600; }
+.link-post:hover { text-decoration: underline; }
+.framework-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+.framework-table th { background: #4ca1af; }
+.framework-table td { padding: 10px; border: 1px solid #ddd; font-size: 0.9em; }
+.legenda-container { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-start; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+.legenda-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #fff; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: 0.9em; }
+.legenda-cor { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.footer { text-align: center; padding: 20px; color: #7f8c8d; font-size: 0.9em; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+<h1>Publicações Recentes: Gestão de Projetos</h1>
+<div class="periodo">Período Analisado: 10/06/2022 a 15/10/2026</div>
+<div class="nota"><strong>Nota Metodológica:</strong> O ano das publicações foi inferido algoritmicamente com base na ordem cronológica decrescente dos posts extraídos do Buffer, uma vez que a plataforma não exibe o ano na listagem de posts enviados. Os anos cobertos são: 2022, 2023, 2024, 2025, 2026.</div>
+</div>
+
+<div class="grid-2">
+<div class="card">
+<h2>Distribuição Temática (Pilares de Conteúdo)</h2>
+<p style="margin-bottom: 15px; color: #555; font-size: 0.9em;"><strong>Pilar de Conteúdo</strong> = principais tópicos e temas abordados nos posts, agrupados por afinidade temática. A classificação é realizada por um algoritmo de scoring baseado em palavras-chave de cada pilar.</p>
+<div class="cc"><canvas id="chartPilares"></canvas></div>
+<div class="legenda-container" id="legendaPilares"></div>
+</div>
+
+<div class="card">
+<h2>Alinhamento com Frameworks Globais (PMBOK e IPMA)</h2>
+<p style="margin-bottom: 15px; color: #555; font-size: 0.9em;">
+<strong>Pilar de Conteúdo</strong>: principais tópicos abordados nos posts.<br>
+<strong>Foco Principal</strong>: objetivo e ênfase de cada pilar na prática da gestão.
+</p>
+<table class="framework-table">
+<thead>
+<tr><th>Pilar de Conteúdo</th><th>PMBOK (PMI)</th><th>IPMA (ICB4)</th><th>Foco Principal</th></tr>
+</thead>
+<tbody>
+
+        <tr>
+            <td><strong>Riscos & Governança</strong></td>
+            <td>Gestão de Riscos, Custos e Integração</td>
+            <td>Domínio de Contexto (Governança) e Prática (Riscos)</td>
+            <td>Controle, Previsibilidade e Proteção do Valor</td>
+        </tr>
+        <tr>
+            <td><strong>Liderança & Pessoas</strong></td>
+            <td>Gestão de Recursos e Partes Interessadas (Stakeholders)</td>
+            <td>Domínio de Pessoas (Liderança, Negociação, Conflitos)</td>
+            <td>Soft Skills, Segurança Psicológica e Engajamento</td>
+        </tr>
+        <tr>
+            <td><strong>Metodologias & Inovação</strong></td>
+            <td>Abordagem de Desenvolvimento e Ciclo de Vida (Tailoring)</td>
+            <td>Domínio de Prática (Métodos e Ferramentas)</td>
+            <td>Adaptação, IA e Melhoria Contínua</td>
+        </tr>
+        <tr>
+            <td><strong>Estratégia & Negócios</strong></td>
+            <td>Entrega de Valor, Benefícios e Escopo</td>
+            <td>Domínio de Negócios (Estratégia e Benefícios)</td>
+            <td>Alinhamento Estratégico e ROI</td>
+        </tr>
+        <tr>
+            <td><strong>Transversal</strong></td>
+            <td>Transversal a todas as áreas de conhecimento</td>
+            <td>Transversal a todos os domínios</td>
+            <td>Reflexão, Ética e Pensamento Sistêmico</td>
+        </tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="card">
+<h2>Top 10 Posts Mais Recentes</h2>
+<p style="margin-bottom: 15px; color: #555;"><strong>Como os posts são classificados:</strong> Seleção baseada <strong>estritamente na data de publicação</strong>, do mais recente para o mais antigo. Esta lista garante a visualização imediata das últimas reflexões e tendências abordadas, independentemente da pontuação temática ou do Score de aderência aos pilares.</p>
+<table>
+<thead>
+<tr><th>#</th><th>Título do Post</th><th>Pilar</th><th>Data</th><th>Acesso</th></tr>
+</thead>
+<tbody>
+
+        <tr>
+            <td><strong>1</strong></td>
+            <td style="max-width: 400px;">Governança e as regras para o que não vale</td>
+            <td><span class="badge" style="background:#43A047">Liderança & Pessoas</span></td>
+            <td style="font-weight: bold; color: #2c3e50;">2026-10-15</td>
+            <td><a href= + link +  target="_blank" class="link-post">Ler</a></td>
+        </tr>
+        <tr>
+            <td><strong>2</strong></td>
+            <td style="max-width: 400px;">O Impacto da Rigidez institucional nas equipes de projetos</td>
+            <td><span class="badge" style="background:#1E88E5">Riscos & Governança</span></td>
+            <td style="font-weight: bold; color: #2c3e50;">2026-10-13</td>
+            <td><a href= + link +  target="_blank" class="link-post">Ler</a></td>
+        </tr>
+        <tr>
+            <td><strong>3</strong></td>
+            <td style="max-width: 400px;">Se a medida é a meta</td>
+            <td><span class="badge" style="background:#FB8C00">Estratégia & Negócios</span></td>
+            <td style="font-weight: bold; color: #2c3e50;">2026-10-08</td>
+            <td><a href= + link +  target="_blank" class="link-post">Ler</a></td>
+        </tr>
+        <tr>
+            <td><strong>4</strong></td>
+            <td style="max-width: 400px;">Descompasso: quando método vira sobrecarga para a equipe de projetos</td>
+            <td><span class="badge" style="background:#8E24AA">Metodologias & Inovação</span></td>
+            <td style="font-weight: bold; color: #2c3e50;">2026-10-06</td>
+            <td><a href= + link +  target="_blank" class="link-post">Ler</a></td>
+        </tr>
+        <tr>
+            <td><strong>5</strong></td>
+            <td style="max-width: 400px;">📊 Você saberia dizer, exatamente, sobre o que mais escreveu no LinkedIn nos últi</td>
+            <td><span class="badge" style="background:#8E24AA">Metodologias & Inovação</span></td>
+            <td style="font-weight: bold; color: #2c3e50;">2026-10-03</td>
+            <td><a href= + link +  target="_blank" class="link-post">Ler</a></td>
+        </tr>
+        <tr>
+            <td><strong>6</strong></td>
+            <td style="max-width: 400px;">Medir a temperatura ou acompanhar o risco?</td>
+            <td><span class="badge" style="background:#1E88E5">Riscos & Governança</span></td>
+            <td style="font-weight: bold; color: #2c3e50;">2026-10-01</td>
+            <td><a href= + link +  target="_blank" class="link-post">Ler</a></td>
+        </tr>
+        <tr>
+            <td><strong>7</strong></td>
+            <td style="max-width: 400px;">O que se pode fazer de modo que, ao fazer, todo o resto se torne mais fácil ou d</td>
+            <td><span class="badge" style="background:#1E88E5">Riscos & Governança</span></td>
+            <td style="font-weight: bold; color: #2c3e50;">2026-09-29</td>
+            <td><a href= + link +  target="_blank" class="link-post">Ler</a></td>
+        </tr>
+        <tr>
+            <td><strong>8</strong></td>
+            <td style="max-width: 400px;">A Aplicação de Framework de Projetos nas</td>
+            <td><span class="badge" style="background:#1E88E5">Riscos & Governança</span></td>
+            <td style="font-weight: bold; color: #2c3e50;">2026-09-24</td>
+            <td><a href= + link +  target="_blank" class="link-post">Ler</a></td>
+        </tr>
+        <tr>
+            <td><strong>9</strong></td>
+            <td style="max-width: 400px;">Gestão de Projetos e um conto do Machado de Assis</td>
+            <td><span class="badge" style="background:#43A047">Liderança & Pessoas</span></td>
+            <td style="font-weight: bold; color: #2c3e50;">2026-09-22</td>
+            <td><a href= + link +  target="_blank" class="link-post">Ler</a></td>
+        </tr>
+        <tr>
+            <td><strong>10</strong></td>
+            <td style="max-width: 400px;">Gestão de Projetos: tópicos paralelos e a perda de foco</td>
+            <td><span class="badge" style="background:#1E88E5">Riscos & Governança</span></td>
+            <td style="font-weight: bold; color: #2c3e50;">2026-09-17</td>
+            <td><a href= + link +  target="_blank" class="link-post">Ler</a></td>
+        </tr>
+</tbody>
+</table>
+</div>
+
+<div class="footer">
+<p>Dashboard de Publicações Recentes gerado automaticamente.</p>
+<p>Baseado em 600 publicações analisadas.</p>
+</div>
+
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+
+new Chart(document.getElementById('chartPilares'), {
+  type: 'doughnut',
+  data: {
+    labels: ["Riscos & Governan\u00e7a", "Lideran\u00e7a & Pessoas", "Metodologias & Inova\u00e7\u00e3o", "Estrat\u00e9gia & Neg\u00f3cios", "Transversal"],
+    datasets: [{
+      data: [61, 133, 247, 149, 10],
+      backgroundColor: ["#1E88E5", "#43A047", "#8E24AA", "#FB8C00", "#757575"],
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        color: '#fff',
+        font: { weight: 'bold', size: 14 },
+        formatter: function(value, context) {
+          return ["10.2%", "22.2%", "41.2%", "24.8%", "1.7%"][context.dataIndex];
+        }
+      }
+    }
+  }
+});
+
+const legendaContainer = document.getElementById('legendaPilares');
+const labels = ["Riscos & Governan\u00e7a", "Lideran\u00e7a & Pessoas", "Metodologias & Inova\u00e7\u00e3o", "Estrat\u00e9gia & Neg\u00f3cios", "Transversal"];
+const colors = ["#1E88E5", "#43A047", "#8E24AA", "#FB8C00", "#757575"];
+const counts = [61, 133, 247, 149, 10];
+const total = counts.reduce((a, b) => a + b, 0);
+
+labels.forEach((label, i) => {
+  const pct = ((counts[i] / total) * 100).toFixed(1);
+  const item = document.createElement('div');
+  item.className = 'legenda-item';
+  item.innerHTML = '<span class="legenda-cor" style="background:' + colors[i] + '"></span>' + label + ' (' + pct + '%)';
+  legendaContainer.appendChild(item);
+});
+</script>
+</body>
+</html>
