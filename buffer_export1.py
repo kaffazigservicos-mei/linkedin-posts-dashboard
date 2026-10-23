@@ -1,6 +1,4 @@
-# buffer_export1.py — VERSÃO FINAL BLINDADA (Compatível com Automação)
-# Caminho: C:\Users\dilma\Documents\Linkedinposts\buffer_export1.py
-
+# buffer_export1.py — VERSÃO FINAL CORRIGIDA (Scroll Agressivo + Sintaxe Limpa)
 import os
 import sys
 import time
@@ -19,9 +17,9 @@ print("[1/8] Configurando variáveis...", flush=True)
 BASE_FOLDER = r"C:\Users\dilma\Documents\Linkedinposts"
 CSV_PATH = os.path.join(BASE_FOLDER, "posts_buffer_texto_data1.csv")
 TIMEOUT = 60
-MAX_SCROLLS = 1000
-MAX_REPEATS = 60
-TARGET_COUNT = 800
+MAX_SCROLLS = 2000      # Aumentado para garantir extração completa
+MAX_REPEATS = 100       # Aumentado para evitar parada prematura (era 60)
+TARGET_COUNT = 800      # Alvo de posts
 os.makedirs(BASE_FOLDER, exist_ok=True)
 
 MESES = {
@@ -43,8 +41,7 @@ try:
     driver = webdriver.Chrome(options=options)
     print("[2/8] ChromeDriver criado com sucesso.", flush=True)
 except Exception as e:
-    print(f"[ERRO] Falha ao criar ChromeDriver: {e}", flush=True)
-    print("[DICA] Verifique se o Chrome está instalado e atualizado.", flush=True)
+    print("[ERRO] Falha ao criar ChromeDriver: " + str(e), flush=True)
     if sys.stdin.isatty():
         input("Pressione ENTER para sair...")
     sys.exit(1)
@@ -59,7 +56,7 @@ try:
     print("[3/8] Página carregada. Aguardando 15s...", flush=True)
     time.sleep(15)
 except Exception as e:
-    print(f"[ERRO] Falha ao carregar página: {e}", flush=True)
+    print("[ERRO] Falha ao carregar página: " + str(e), flush=True)
     driver.quit()
     if sys.stdin.isatty():
         input("Pressione ENTER para sair...")
@@ -75,7 +72,6 @@ except Exception:
     print("[4/8] Sessão não válida. Login necessário.", flush=True)
     print("[INFO] Faça login no Buffer no navegador que abriu.", flush=True)
     
-    # PROTEÇÃO: Só pede input se houver terminal interativo
     if sys.stdin.isatty():
         link = input("Cole o link de confirmação e pressione ENTER: ").strip()
         if not link.startswith("http"):
@@ -96,40 +92,46 @@ except Exception:
             input("Pressione ENTER para sair...")
             sys.exit(1)
     else:
-        # Modo automático: não pode pedir login, então encerra graciosamente
         print("[AVISO] Sessão expirada e sem terminal para login manual.", flush=True)
         print("[DICA] Execute 'python buffer_export1.py' manualmente para renovar a sessão.", flush=True)
         driver.quit()
         sys.exit(1)
 
+# ===== SCROLL AGRESSIVO PARA CARREGAR TODOS OS POSTS =====
 print("[5/8] Scroll para carregar posts...", flush=True)
 last_count = 0
 same_count_repeats = 0
+
 for i in range(1, MAX_SCROLLS + 1):
     posts = driver.find_elements(By.XPATH, "//article")
+    
+    # Rola até o último post visível
     if posts:
         driver.execute_script("arguments[0].scrollIntoView(true);", posts[-1])
     else:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     
-    time.sleep(1.5)
-    driver.execute_script("window.scrollBy(0, 500);")
-    time.sleep(0.5)
+    # Pausa maior para o Buffer carregar os próximos posts
+    time.sleep(2.5)
+    
+    # Rola mais um pouco para forçar o carregamento
+    driver.execute_script("window.scrollBy(0, 800);")
+    time.sleep(1.0)
     
     posts = driver.find_elements(By.XPATH, "//article")
     new_count = len(posts)
     
     if i % 10 == 0 or new_count != last_count:
-        print(f"[5/8] Scroll {i} -> {new_count} posts", flush=True)
+        print("[5/8] Scroll " + str(i) + " -> " + str(new_count) + " posts", flush=True)
         
     if new_count >= TARGET_COUNT:
-        print(f"[5/8] Alvo atingido ({new_count} posts).", flush=True)
+        print("[5/8] Alvo atingido (" + str(new_count) + " posts).", flush=True)
         break
         
     if new_count == last_count:
         same_count_repeats += 1
         if same_count_repeats >= MAX_REPEATS:
-            print(f"[5/8] Fim do scroll - {new_count} posts.", flush=True)
+            print("[5/8] Fim do scroll - " + str(new_count) + " posts.", flush=True)
             break
     else:
         same_count_repeats = 0
@@ -142,15 +144,16 @@ if last_count == 0:
         input("Pressione ENTER para sair...")
     sys.exit(1)
 
-print(f"[6/8] Expandindo 'See more'...", flush=True)
-for tentativa in range(1, 10):
+# ===== Expandir 'See more' =====
+print("[6/8] Expandindo 'See more'...", flush=True)
+for tentativa in range(1, 15):
     botoes = driver.find_elements(By.XPATH,
         "//button[contains(translate(text(), 'SEEMORE', 'seemore'), 'see more') "
         "or contains(translate(text(), 'VERMAIS', 'vermais'), 'ver mais')]")
     if not botoes:
-        print(f"[6/8] Sem botões na tentativa {tentativa}.", flush=True)
+        print("[6/8] Sem botões na tentativa " + str(tentativa) + ".", flush=True)
         break
-    print(f"[6/8] {len(botoes)} botões - tentativa {tentativa}", flush=True)
+    print("[6/8] " + str(len(botoes)) + " botões - tentativa " + str(tentativa), flush=True)
     for botao in botoes:
         try:
             driver.execute_script("arguments[0].click();", botao)
@@ -161,6 +164,7 @@ for tentativa in range(1, 10):
         break
     time.sleep(3)
 
+# ===== Extraindo dados via JS =====
 print("[7/8] Extraindo dados...", flush=True)
 driver.execute_script("""
 document.querySelectorAll('article p, article span, article div').forEach(el => {
@@ -187,9 +191,9 @@ return resultados;
 
 try:
     dados_js = driver.execute_script(js_code)
-    print(f"[7/8] Extração concluída: {len(dados_js)} posts.", flush=True)
+    print("[7/8] Extração concluída: " + str(len(dados_js)) + " posts.", flush=True)
 except Exception as e:
-    print(f"[ERRO] Falha na extração: {e}", flush=True)
+    print("[ERRO] Falha na extração: " + str(e), flush=True)
     dados_js = []
 
 if not dados_js:
@@ -199,6 +203,7 @@ if not dados_js:
         input("Pressione ENTER para sair...")
     sys.exit(1)
 
+# ===== Processamento de Datas e Salvamento =====
 print("[8/8] Processando datas e salvando CSV...", flush=True)
 
 def extrair_mes_dia(aria_label):
@@ -228,14 +233,14 @@ def inferir_anos(lista_mes_dia):
             if ultima_data_valida:
                 resultados.append(ultima_data_valida)
             else:
-                resultados.append(f"{ano_atual}-01-01")
+                resultados.append(str(ano_atual) + "-01-01")
             continue
             
         mes_atual, dia = md
         if mes_anterior is not None and mes_atual > mes_anterior:
             ano_corrente -= 1
             
-        data_formatada = f"{ano_corrente}-{mes_atual:02d}-{dia:02d}"
+        data_formatada = str(ano_corrente) + "-" + str(mes_atual).zfill(2) + "-" + str(dia).zfill(2)
         resultados.append(data_formatada)
         ultima_data_valida = data_formatada
         mes_anterior = mes_atual
@@ -249,18 +254,19 @@ registros = []
 for i, item in enumerate(dados_js):
     texto = item.get("texto", "") or ""
     link = item.get("link", "") or ""
-    data = datas_completas[i] if i < len(datas_completas) else f"{datetime.now().year}-01-01"
+    data = datas_completas[i] if i < len(datas_completas) else str(datetime.now().year) + "-01-01"
     registros.append((data, texto, link))
 
 try:
+    # CORREÇÃO CRÍTICA: Removidos os espaços das strings
     with open(CSV_PATH, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f, delimiter=";")
         writer.writerow(["Data", "Texto", "Link"])
         for data, texto, link in registros:
             writer.writerow([data, texto, link])
-    print(f"[8/8] Exportados {len(registros)} posts para {CSV_PATH}", flush=True)
+    print("[8/8] Exportados " + str(len(registros)) + " posts para " + CSV_PATH, flush=True)
 except Exception as e:
-    print(f"[ERRO] Falha ao salvar CSV: {e}", flush=True)
+    print("[ERRO] Falha ao salvar CSV: " + str(e), flush=True)
 
 print("\n[OK] Script finalizado!", flush=True)
 try:
@@ -269,6 +275,5 @@ try:
 except Exception:
     pass
 
-# PROTEÇÃO FINAL: Só pede ENTER se houver terminal interativo
 if sys.stdin.isatty():
     input("\nPressione ENTER para sair...")

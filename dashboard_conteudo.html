@@ -43,7 +43,7 @@ tr:hover { background: #f8f9fa; }
 
 <div class="header">
 <h1>Análise de Conteúdo: Gestão de Projetos</h1>
-<div class="periodo">Período Analisado: 10/06/2022 a 15/10/2026</div>
+<div class="periodo">Período Analisado: 10/06/2022 a 22/10/2026</div>
 <div class="nota"><strong>Nota Metodológica:</strong> O ano das publicações foi inferido algoritmicamente com base na ordem cronológica decrescente dos posts extraídos do Buffer, uma vez que a plataforma não exibe o ano na listagem de posts enviados. Os anos cobertos são: 2022, 2023, 2024, 2025, 2026.</div>
 </div>
 
@@ -277,7 +277,7 @@ tr:hover { background: #f8f9fa; }
 
 <div class="footer">
 <p>Dashboard de Análise de Conteúdo gerado automaticamente.</p>
-<p>Baseado em 600 publicações analisadas.</p>
+<p>Baseado em 603 publicações analisadas.</p>
 </div>
 
 </div>
@@ -290,7 +290,7 @@ new Chart(document.getElementById('chartPilares'), {
   data: {
     labels: ["Riscos & Governan\u00e7a", "Lideran\u00e7a & Pessoas", "Metodologias & Inova\u00e7\u00e3o", "Estrat\u00e9gia & Neg\u00f3cios", "Transversal"],
     datasets: [{
-      data: [61, 133, 247, 149, 10],
+      data: [61, 135, 248, 149, 10],
       backgroundColor: ["#1E88E5", "#43A047", "#8E24AA", "#FB8C00", "#757575"],
       borderWidth: 2,
       borderColor: '#fff'
@@ -305,7 +305,7 @@ new Chart(document.getElementById('chartPilares'), {
         color: '#fff',
         font: { weight: 'bold', size: 14 },
         formatter: function(value, context) {
-          return ["10.2%", "22.2%", "41.2%", "24.8%", "1.7%"][context.dataIndex];
+          return ["10.1%", "22.4%", "41.1%", "24.7%", "1.7%"][context.dataIndex];
         }
       }
     }
@@ -315,7 +315,7 @@ new Chart(document.getElementById('chartPilares'), {
 const legendaContainer = document.getElementById('legendaPilares');
 const labels = ["Riscos & Governan\u00e7a", "Lideran\u00e7a & Pessoas", "Metodologias & Inova\u00e7\u00e3o", "Estrat\u00e9gia & Neg\u00f3cios", "Transversal"];
 const colors = ["#1E88E5", "#43A047", "#8E24AA", "#FB8C00", "#757575"];
-const counts = [61, 133, 247, 149, 10];
+const counts = [61, 135, 248, 149, 10];
 const total = counts.reduce((a, b) => a + b, 0);
 
 labels.forEach((label, i) => {
