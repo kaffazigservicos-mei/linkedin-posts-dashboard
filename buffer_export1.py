@@ -1,4 +1,4 @@
-# buffer_export1.py — VERSÃO FINAL CORRIGIDA (Scroll Agressivo + Sintaxe Limpa)
+# buffer_export1.py — VERSÃO FINAL COM SCROLL AGRESSIVO
 import os
 import sys
 import time
@@ -17,9 +17,9 @@ print("[1/8] Configurando variáveis...", flush=True)
 BASE_FOLDER = r"C:\Users\dilma\Documents\Linkedinposts"
 CSV_PATH = os.path.join(BASE_FOLDER, "posts_buffer_texto_data1.csv")
 TIMEOUT = 60
-MAX_SCROLLS = 2000      # Aumentado para garantir extração completa
-MAX_REPEATS = 100       # Aumentado para evitar parada prematura (era 60)
-TARGET_COUNT = 800      # Alvo de posts
+MAX_SCROLLS = 3000
+MAX_REPEATS = 150
+TARGET_COUNT = 800
 os.makedirs(BASE_FOLDER, exist_ok=True)
 
 MESES = {
@@ -77,7 +77,8 @@ except Exception:
         if not link.startswith("http"):
             print("[ERRO] URL inválida.", flush=True)
             driver.quit()
-            input("Pressione ENTER para sair...")
+            if sys.stdin.isatty():
+        input("Pressione ENTER para sair...")
             sys.exit(1)
         driver.get(link)
         time.sleep(20)
@@ -89,7 +90,8 @@ except Exception:
         except Exception:
             print("[ERRO] Não foi possível localizar posts após login.", flush=True)
             driver.quit()
-            input("Pressione ENTER para sair...")
+            if sys.stdin.isatty():
+        input("Pressione ENTER para sair...")
             sys.exit(1)
     else:
         print("[AVISO] Sessão expirada e sem terminal para login manual.", flush=True)
@@ -97,7 +99,6 @@ except Exception:
         driver.quit()
         sys.exit(1)
 
-# ===== SCROLL AGRESSIVO PARA CARREGAR TODOS OS POSTS =====
 print("[5/8] Scroll para carregar posts...", flush=True)
 last_count = 0
 same_count_repeats = 0
@@ -105,18 +106,15 @@ same_count_repeats = 0
 for i in range(1, MAX_SCROLLS + 1):
     posts = driver.find_elements(By.XPATH, "//article")
     
-    # Rola até o último post visível
     if posts:
         driver.execute_script("arguments[0].scrollIntoView(true);", posts[-1])
     else:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     
-    # Pausa maior para o Buffer carregar os próximos posts
-    time.sleep(2.5)
+    time.sleep(3.0)
     
-    # Rola mais um pouco para forçar o carregamento
-    driver.execute_script("window.scrollBy(0, 800);")
-    time.sleep(1.0)
+    driver.execute_script("window.scrollBy(0, 1000);")
+    time.sleep(1.5)
     
     posts = driver.find_elements(By.XPATH, "//article")
     new_count = len(posts)
@@ -144,7 +142,6 @@ if last_count == 0:
         input("Pressione ENTER para sair...")
     sys.exit(1)
 
-# ===== Expandir 'See more' =====
 print("[6/8] Expandindo 'See more'...", flush=True)
 for tentativa in range(1, 15):
     botoes = driver.find_elements(By.XPATH,
@@ -164,7 +161,6 @@ for tentativa in range(1, 15):
         break
     time.sleep(3)
 
-# ===== Extraindo dados via JS =====
 print("[7/8] Extraindo dados...", flush=True)
 driver.execute_script("""
 document.querySelectorAll('article p, article span, article div').forEach(el => {
@@ -182,8 +178,20 @@ posts.forEach(post => {
     try { texto = (post.innerText || '').trim(); } catch(e) {}
     let aria_label = post.getAttribute('aria-label') || '';
     let link = '';
-    const linkEl = post.querySelector('a[href*="linkedin.com"]');
-    if (linkEl) link = linkEl.href || '';
+    
+    const allLinks = post.querySelectorAll('a[href*="linkedin.com"]');
+    for (const linkEl of allLinks) {
+        const href = linkEl.href || '';
+        if (href.includes('/posts/') || href.includes('/feed/update/') || href.includes('/pulse/')) {
+            link = href;
+            break;
+        }
+    }
+    
+    if (!link && allLinks.length > 0) {
+        link = allLinks[0].href || '';
+    }
+    
     resultados.push({ texto: texto, aria_label: aria_label, link: link });
 });
 return resultados;
@@ -203,7 +211,6 @@ if not dados_js:
         input("Pressione ENTER para sair...")
     sys.exit(1)
 
-# ===== Processamento de Datas e Salvamento =====
 print("[8/8] Processando datas e salvando CSV...", flush=True)
 
 def extrair_mes_dia(aria_label):
@@ -222,27 +229,31 @@ def extrair_mes_dia(aria_label):
     return None
 
 def inferir_anos(lista_mes_dia):
-    ano_atual = datetime.now().year
+    agora = datetime.now()
+    ano_atual = agora.year
+    mes_atual_real = agora.month
+    
     resultados = []
     ano_corrente = ano_atual
     mes_anterior = None
-    ultima_data_valida = None
     
-    for md in lista_mes_dia:
+    for i, md in enumerate(lista_mes_dia):
         if md is None:
-            if ultima_data_valida:
-                resultados.append(ultima_data_valida)
+            if resultados:
+                resultados.append(resultados[-1])
             else:
                 resultados.append(str(ano_atual) + "-01-01")
             continue
             
         mes_atual, dia = md
-        if mes_anterior is not None and mes_atual > mes_anterior:
+        
+        if i == 0 and mes_atual > mes_atual_real:
+            ano_corrente = ano_atual - 1
+        elif mes_anterior is not None and mes_atual > mes_anterior:
             ano_corrente -= 1
             
         data_formatada = str(ano_corrente) + "-" + str(mes_atual).zfill(2) + "-" + str(dia).zfill(2)
         resultados.append(data_formatada)
-        ultima_data_valida = data_formatada
         mes_anterior = mes_atual
         
     return resultados
@@ -258,7 +269,6 @@ for i, item in enumerate(dados_js):
     registros.append((data, texto, link))
 
 try:
-    # CORREÇÃO CRÍTICA: Removidos os espaços das strings
     with open(CSV_PATH, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f, delimiter=";")
         writer.writerow(["Data", "Texto", "Link"])
@@ -276,4 +286,5 @@ except Exception:
     pass
 
 if sys.stdin.isatty():
-    input("\nPressione ENTER para sair...")
+    if sys.stdin.isatty():
+        input("\nPressione ENTER para sair...")

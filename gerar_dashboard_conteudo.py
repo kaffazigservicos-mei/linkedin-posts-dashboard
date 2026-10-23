@@ -1,6 +1,4 @@
-# gerar_dashboard_conteudo.py — Gerador Unificado de Dashboards (Versão Final Auditada)
-# Caminho: C:\Users\dilma\Documents\Linkedinposts\gerar_dashboard_conteudo.py
-
+# gerar_dashboard_conteudo.py — VERSÃO FINAL CORRETA (HTML REAL + LINKS FUNCIONAIS)
 import os
 import sys
 import csv
@@ -60,13 +58,11 @@ MAPA_FRAMEWORKS = {
     }
 }
 
-
 def parse_int(valor):
     try:
         return int(str(valor).strip().replace('"', '').replace('%', ''))
     except (ValueError, TypeError):
         return 0
-
 
 def parse_data(data_str):
     if not data_str:
@@ -79,9 +75,7 @@ def parse_data(data_str):
             continue
     return None
 
-
 def calcular_bonus_recencia(data_post, data_mais_recente):
-    """Calcula bônus de recência com peso alto para equilibrar Score + Atualidade."""
     if not data_post or not data_mais_recente:
         return 0
     diff_meses = (data_mais_recente.year - data_post.year) * 12 + (data_mais_recente.month - data_post.month)
@@ -96,26 +90,23 @@ def calcular_bonus_recencia(data_post, data_mais_recente):
     else:
         return 0
 
-
 def gerar_tabela_frameworks(contador_pilares):
     linhas = ""
     for pilar_nome in contador_pilares.keys():
         mapa = MAPA_FRAMEWORKS.get(pilar_nome, {"pmbok": "-", "ipma": "-", "foco": "-"})
-        linhas += """
-        <tr>
-            <td><strong>""" + NOMES_CURTOS.get(pilar_nome, pilar_nome) + """</strong></td>
-            <td>""" + mapa['pmbok'] + """</td>
-            <td>""" + mapa['ipma'] + """</td>
-            <td>""" + mapa['foco'] + """</td>
-        </tr>"""
+        linhas += "<tr>"
+        linhas += "<td><strong>" + NOMES_CURTOS.get(pilar_nome, pilar_nome) + "</strong></td>"
+        linhas += "<td>" + mapa['pmbok'] + "</td>"
+        linhas += "<td>" + mapa['ipma'] + "</td>"
+        linhas += "<td>" + mapa['foco'] + "</td>"
+        linhas += "</tr>"
     return linhas
-
 
 def gerar_html_relevancia(top10, contador_pilares, total_posts, periodo_str, anos_str,
                           pilares_labels, pilares_counts, pilares_colors, pilares_pct_json):
-
+    
     tabela_frameworks = gerar_tabela_frameworks(contador_pilares)
-
+    
     linhas_top10 = ""
     for i, item in enumerate(top10, 1):
         p = item['post']
@@ -124,27 +115,26 @@ def gerar_html_relevancia(top10, contador_pilares, total_posts, periodo_str, ano
         pilar_nome = NOMES_CURTOS.get(pilar, pilar)
         pilar_cor = CORES_PILARES.get(pilar, "#BDBDBD")
         data = p.get("Data", "")
+        # CORREÇÃO CRÍTICA: Pegar o link e usar no href
         link = (p.get("Link_Original", "") or "#").strip()
-
+        
         score_orig = item['score_original']
         bonus = item['bonus_recencia']
         pont_final = item['pontuacao_final']
-
-        linhas_top10 += """
-        <tr>
-            <td><strong>""" + str(i) + """</strong></td>
-            <td style="max-width: 400px;">""" + titulo + """</td>
-            <td><span class="badge" style="background:""" + pilar_cor + """">""" + pilar_nome + """</span></td>
-            <td>""" + data + """</td>
-            <td>
-                <div style="font-size: 0.85em; line-height: 1.4;">
-                    <div>Score: <strong>""" + str(score_orig) + """</strong></div>
-                    <div style="color: #43A047;">+ Recência: <strong>""" + str(bonus) + """</strong></div>
-                    <div style="font-weight: bold; margin-top: 3px;">Total: """ + str(pont_final) + """</div>
-                </div>
-            </td>
-            <td><a href="""" + link + """" target="_blank" class="link-post">Ler</a></td>
-        </tr>"""
+        
+        linhas_top10 += "<tr>"
+        linhas_top10 += "<td><strong>" + str(i) + "</strong></td>"
+        linhas_top10 += "<td style='max-width: 400px;'>" + titulo + "</td>"
+        linhas_top10 += "<td><span class='badge' style='background:" + pilar_cor + "'>" + pilar_nome + "</span></td>"
+        linhas_top10 += "<td>" + data + "</td>"
+        linhas_top10 += "<td><div style='font-size: 0.85em; line-height: 1.4;'>"
+        linhas_top10 += "<div>Score: <strong>" + str(score_orig) + "</strong></div>"
+        linhas_top10 += "<div style='color: #43A047;'>+ Recência: <strong>" + str(bonus) + "</strong></div>"
+        linhas_top10 += "<div style='font-weight: bold; margin-top: 3px;'>Total: " + str(pont_final) + "</div>"
+        linhas_top10 += "</div></td>"
+        # CORREÇÃO CRÍTICA: Injetar o link no href
+        linhas_top10 += "<td><a href='" + link + "' target='_blank' class='link-post'>Ler</a></td>"
+        linhas_top10 += "</tr>"
 
     html = """<!DOCTYPE html>
 <html lang="pt-BR">
@@ -308,12 +298,11 @@ labels.forEach((label, i) => {
 </html>"""
     return html
 
-
 def gerar_html_recentes(top10, contador_pilares, total_posts, periodo_str, anos_str,
                         pilares_labels, pilares_counts, pilares_colors, pilares_pct_json):
-
+    
     tabela_frameworks = gerar_tabela_frameworks(contador_pilares)
-
+    
     linhas_top10 = ""
     for i, p in enumerate(top10, 1):
         titulo = (p.get("Titulo", "") or "Sem título")[:80]
@@ -321,16 +310,17 @@ def gerar_html_recentes(top10, contador_pilares, total_posts, periodo_str, anos_
         pilar_nome = NOMES_CURTOS.get(pilar, pilar)
         pilar_cor = CORES_PILARES.get(pilar, "#BDBDBD")
         data = p.get("Data", "")
+        # CORREÇÃO CRÍTICA: Pegar o link e usar no href
         link = (p.get("Link_Original", "") or "#").strip()
-
-        linhas_top10 += """
-        <tr>
-            <td><strong>""" + str(i) + """</strong></td>
-            <td style="max-width: 400px;">""" + titulo + """</td>
-            <td><span class="badge" style="background:""" + pilar_cor + """">""" + pilar_nome + """</span></td>
-            <td style="font-weight: bold; color: #2c3e50;">""" + data + """</td>
-            <td><a href="""" + link + """" target="_blank" class="link-post">Ler</a></td>
-        </tr>"""
+        
+        linhas_top10 += "<tr>"
+        linhas_top10 += "<td><strong>" + str(i) + "</strong></td>"
+        linhas_top10 += "<td style='max-width: 400px;'>" + titulo + "</td>"
+        linhas_top10 += "<td><span class='badge' style='background:" + pilar_cor + "'>" + pilar_nome + "</span></td>"
+        linhas_top10 += "<td style='font-weight: bold; color: #2c3e50;'>" + data + "</td>"
+        # CORREÇÃO CRÍTICA: Injetar o link no href
+        linhas_top10 += "<td><a href='" + link + "' target='_blank' class='link-post'>Ler</a></td>"
+        linhas_top10 += "</tr>"
 
     html = """<!DOCTYPE html>
 <html lang="pt-BR">
@@ -471,7 +461,6 @@ labels.forEach((label, i) => {
 </html>"""
     return html
 
-
 def main():
     print("=" * 70)
     print("Gerador de Dashboards de Análise de Conteúdo")
@@ -540,7 +529,6 @@ def main():
 
     data_mais_recente = max(datas_validas) if datas_validas else None
 
-    # TOP 10 POR RELEVÂNCIA (Score + Recência)
     posts_com_pontuacao = []
     for p in posts:
         score_original = parse_int(p.get("Score", 0))
@@ -558,7 +546,6 @@ def main():
     posts_ordenados = sorted(posts_com_pontuacao, key=lambda x: x['pontuacao_final'], reverse=True)
     top_10_relevancia = posts_ordenados[:10]
 
-    # TOP 10 POR DATA (Mais Recentes)
     posts_ordenados_data = sorted(
         posts,
         key=lambda x: parse_data(x.get("Data", "")) or datetime.min,
@@ -566,7 +553,6 @@ def main():
     )
     top_10_recentes = posts_ordenados_data[:10]
 
-    # Gerar Dashboard de Relevância
     html_relevancia = gerar_html_relevancia(
         top_10_relevancia, contador_pilares, total_posts,
         periodo_str, anos_str,
@@ -576,7 +562,6 @@ def main():
         f.write(html_relevancia)
     print("\nDashboard de Relevância gerado: " + HTML_SAIDA_RELEVANCIA)
 
-    # Gerar Dashboard de Recentes
     html_recentes = gerar_html_recentes(
         top_10_recentes, contador_pilares, total_posts,
         periodo_str, anos_str,
@@ -589,7 +574,6 @@ def main():
     print("\nPeríodo: " + periodo_str)
     print("Anos cobertos: " + anos_str)
     print("Total de posts analisados: " + str(total_posts))
-
 
 if __name__ == "__main__":
     try:
